@@ -1,43 +1,68 @@
-document.getElementById("sendForm").addEventListener("submit", async function(event) {
-    event.preventDefault();
-
-    const password = document.getElementById("password").value.trim();
-    const message = document.getElementById("message").value.trim();
-    const images = document.getElementById("images").files;
-    const statusMessage = document.getElementById("statusMessage");
-
-    if (!message && images.length === 0) {
-        statusMessage.innerHTML = "<p class='text-danger'>Error: Please provide a message or images.</p>";
-        return;
-    }
+document.getElementById('media_form').addEventListener('submit', async function(event) {
+    event.preventDefault(); // Prevent the default form submission
 
     const formData = new FormData();
-    formData.append("message", message);
-    for (let i = 0; i < images.length; i++) {
-        formData.append("image", images[i]);
+    const message = document.getElementById('message').value.trim();
+    const password = document.getElementById('password').value.trim(); // Get the password entered by the user
+    const mediaFiles = document.getElementById('media').files; // Get the selected files (images & videos)
+
+    console.log("Password entered:", password); // Log the password (for debugging only, don't log in production!)
+    console.log("Message entered:", message); // Log message
+    console.log("Media files selected:", mediaFiles.length); // Log number of files selected
+
+    if (!password) {
+        alert("Password is required.");
+        return; // Don't proceed if no password is provided
     }
 
-    const headers = {};
-    if (password) {
-        headers["Authorization"] = `Bearer ${password}`;
+    if (message) {
+        formData.append('message', message);  // Add message if present
+    }
+    
+    formData.append('password', password);  // Add the password to the formData
+
+    // Log the details of each media file (image or video)
+    for (let i = 0; i < mediaFiles.length; i++) {
+        console.log(`File ${i + 1}:`, mediaFiles[i].name, `(${mediaFiles[i].size} bytes, Type: ${mediaFiles[i].type})`); // Log file name, size, and type
+        formData.append('media', mediaFiles[i]);
     }
 
-    statusMessage.innerHTML = "<p class='text-info'>Sending...</p>";
 
     try {
-        const response = await fetch("/imagemessage", { 
-            method: "POST",
-            headers: headers,
-            body: formData
+        const response = await fetch('/imagemessage', {  // Make sure the path is correct
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${password}`  // Include password as Bearer token in Authorization header
+            },
+            body: formData,
         });
 
-        const result = await response.text();
+        console.log('Response status:', response.status);  // Log response status
+
         if (response.ok) {
-            statusMessage.innerHTML = "<p class='text-success'>Success: " + result + "</p>";
+            alert('Message and media sent successfully!');
         } else {
-            statusMessage.innerHTML = "<p class='text-danger'>Error: " + result + "</p>";
+            const errorText = await response.text();  // Read response text for additional error info
+            alert(`Failed to send message. HTTP status: ${response.status}, Error: ${errorText}`);
         }
     } catch (error) {
-        statusMessage.innerHTML = "<p class='text-danger'>Error: Failed to send request.</p>";
+        console.error('Error while sending media:', error);  // Log detailed error info
+        alert('An error occurred while sending the media. Please check the console for details.');
     }
+});
+
+document.getElementById('media').addEventListener('change', function() {
+    const clearButton = document.getElementById('clear_button');
+    if (this.files.length > 0) {
+        clearButton.style.display = 'inline-block'; // Show the "Clear" button
+    } else {
+        clearButton.style.display = 'none'; // Hide the "Clear" button if no files selected
+    }
+});
+
+document.getElementById('clear_button').addEventListener('click', function() {
+    // Reset the file input and the message textarea
+    document.getElementById('media').value = ''; // Clear selected files
+    document.getElementById('message').value = ''; // Clear message
+    this.style.display = 'none'; // Hide the "Clear" button again
 });
